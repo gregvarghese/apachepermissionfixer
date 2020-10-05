@@ -1,82 +1,89 @@
 <html>
+
 <head>
     <title>Apache Permissions Fixer</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 </head>
+
 <body>
 
 
-<div class="container-fluid mt-3">
-    <div class="card">
-    <div class="card-header">
-        Apache Permissions Fixer
-    </div>
-    <div class="card-body">
+    <div class="container-fluid mt-3">
+        <div class="card">
+            <div class="card-header">
+                Apache Permissions Fixer
+            </div>
+            <div class="card-body">
 
-        <p class="card-text">This tool will generate the shell commands to fix permissions on a Apache folder. It's particularly useful for fixing Wordpress permissions.</p>
+                <p class="card-text">This tool will generate the shell commands to fix permissions on a Apache folder. It's particularly useful for fixing Wordpress permissions.</p>
 
-        <div class="row">
-            <div class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" class="form-control" id="username" aria-describedby="usernameHelp" placeholder="ubuntu">
-                    <small id="usernameHelp" class="form-text text-muted">Optional. If specified, will add specified user to www-data group</small>
+                <div class="row">
+                    <div class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content">
+                        <div class="form-group">
+                            <label for="apachegroup">Apache User Group</label>
+                            <input type="text" class="form-control" id="apachegroup" aria-describedby="apachegroupHelp" placeholder="www-data" value="www-data">
+                            <small id="apachegroupHelp" class="form-text text-muted">If you are using something other than www-data.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" aria-describedby="usernameHelp" placeholder="ubuntu">
+                            <small id="usernameHelp" class="form-text text-muted">Optional. If specified, will add specified user to www-data group</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="folder">Root Folder Path</label>
+                            <input type="text" class="form-control" id="rootfolder" name="rootfolder" aria-describedby="rootFolderHelp" value="/var/www/" placeholder="/var/www/">
+                            <small id="rootFolderHelp" class="form-text text-muted">If empty, </small>
+                        </div>
+                        <div class="form-group">
+                            <label for="folder">Folder Path</label>
+                            <input type="text" class="form-control" id="folder" name="folder" aria-describedby="folderHelp" value="" placeholder="test.com" required>
+                            <small id="folderHelp" class="form-text text-muted">If empty, </small>
+                        </div>
+                        <button type="button" onclick="generateScript()" class="btn btn-primary">Generate</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="folder">Root Folder Path</label>
-                    <input type="text" class="form-control" id="rootfolder" name="rootfolder" aria-describedby="rootFolderHelp" value="/var/www/" placeholder="/var/www/">
-                    <small id="rootFolderHelp" class="form-text text-muted">If empty, </small>
+                <div class="row">
+                    <div class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content">
+                        <div class="form-group">
+                            <label for="output">Example textarea</label>
+                            <textarea class="form-control" id="output" rows="10"></textarea>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="folder">Folder Path</label>
-                    <input type="text" class="form-control" id="folder" name="folder" aria-describedby="folderHelp" value="" placeholder="test.com" required>
-                    <small id="folderHelp" class="form-text text-muted">If empty, </small>
-                </div>
-                <button type="button" onclick="generateScript()" class="btn btn-primary">Generate</button>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content">
-                <div class="form-group">
-                    <label for="output">Example textarea</label>
-                    <textarea class="form-control" id="output" rows="10"></textarea>
-                </div>
-            </div>
-        </div>
     </div>
-    </div>
-</div>
 
 
-<script type="text/javascript">
+    <script type="text/javascript">
+        function generateScript() {
+            let elApachegroup = document.getElementById('apachegroup').value;
+            let elUsername = document.getElementById('username').value;
+            let elRootFolder = document.getElementById('rootfolder').value;
+            let elFolder = document.getElementById('folder').value;
+            let elOutput = document.getElementById('output');
 
-    function generateScript() {
-        let elUsername = document.getElementById('username').value;
-        let elRootFolder = document.getElementById('rootfolder').value;
-        let elFolder = document.getElementById('folder').value;
-        let elOutput = document.getElementById('output');
+            let userscript = elUsername ? "sudo usermod -a -G www-data " + elUsername + "\n" : '';
 
-        let userscript = elUsername ? "sudo usermod -a -G www-data " + elUsername + "\n" : '';
+            let script = "Folder cannot be blank";
 
-        let script = "Folder cannot be blank";
+            if (elFolder) {
 
-        if (elFolder) {
+                script = userscript + "cd " + elRootFolder + "\n" +
+                    "sudo chmod 775 " + elFolder + "\n" +
+                    "sudo chgrp " + elApachegroup + " " + elFolder + "\n" +
+                    "sudo chmod g+s " + elFolder + "\n" +
+                    "sudo chgrp -R " + elApachegroup + " " + elFolder + "\n" +
+                    "sudo chown " + elApachegroup + ":" + elApachegroup + " " + elFolder + " -R \n" +
+                    "cd " + elRootFolder + elFolder + "\n" +
+                    "sudo find . -type f -exec chmod 664 {} \\;\n" +
+                    "sudo find . -type d -exec chmod 775 {} \\;"
+            }
 
-            script = userscript + "cd " + elRootFolder + "\n" +
-                "sudo chmod 775 " + elFolder + "\n" +
-                "sudo chgrp www-data " + elFolder + "\n" +
-                "sudo chmod g+s " + elFolder + "\n" +
-                "sudo chgrp -R www-data " + elFolder + "\n" +
-                "cd " + elRootFolder + elFolder + "\n" +
-                "sudo find . -type f -exec chmod 664 {} \\;\n" +
-                "sudo find . -type d -exec chmod 775 {} \\;"
+
+            elOutput.value = script;
         }
-
-
-        elOutput.value = script;
-    }
-
-
-</script>
+    </script>
 </body>
+
 </html>
